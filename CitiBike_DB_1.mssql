@@ -1,0 +1,9 @@
+-- Install PostGIS extension
+CREATE EXTENSION postgis;
+
+-- Install pgRouting extension
+CREATE EXTENSION pgrouting;
+
+
+
+Select * FROM public.data

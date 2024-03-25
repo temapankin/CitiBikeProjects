@@ -1,0 +1,217 @@
+SELECT * 
+FROM data 
+LIMIT 1000
+
+
+CREATE TABLE IF NOT EXISTS stations AS
+SELECT start_station_name as station_name, start_station_id as station_id,
+			start_lat as lat, start_lng as long
+FROM data;
+
+DROP TABLE IF EXISTS stations
+
+CREATE TABLE IF NOT EXISTS stations AS
+(SELECT start_station_name as station_name, start_station_id as station_id,
+			start_lat as lat, start_lng as long FROM data
+UNION ALL
+SELECT end_station_name as station_name, end_station_id::double precision as station_id, 
+		end_lat  as lat, end_lng long FROM data)
+
+
+CREATE INDEX index_1
+ON stations (station_name, station_id, lat, long);
+
+SELECT *
+FROM stations 
+LIMIT 100
+
+-- Add a new column 'geom' of type POINT to store the geometry
+ALTER TABLE stations ADD COLUMN geom geometry(Point, 4326);
+
+-- Update the 'geom' column with the point geometry from lat and long
+UPDATE stations SET geom = ST_SetSRID(ST_MakePoint(long, lat), 4326);
+
+
+
+----
+
+
+	
+CREATE VIEW bike_stations_temp AS
+(SELECT DISTINCT ON (station_id) station_id, station_name, most_frequent_value from (
+	
+SELECT 	station_name,
+    	station_id,
+		geom AS most_frequent_value, 
+		count(*) as _count
+FROM stations
+GROUP BY station_name, station_id, geom) a
+ORDER BY station_id, _count DESC)
+
+
+SELECT * from bike_stations_temp
+
+
+CREATE TABLE IF NOT EXISTS bike_stations (
+	SID SERIAL PRIMARY KEY,
+	STATION_ID double precision, -- Will be later required to join with trips table 
+	STATION_NAME VARCHAR (255),
+	GEOM GEOMETRY);
+
+INSERT INTO bike_stations (station_id, station_name, geom)
+SELECT station_id, station_name, most_frequent_value
+FROM bike_stations_temp
+WHERE station_name IS NOT NULL;
+
+
+SELECT * FROM bike_stations
+
+
+
+--- CHECK FOR SIMPLICITY AND VALIDITY, CREATE INDEX
+ALTER TABLE bike_stations
+ADD COLUMN geom_UTM geometry(POINT, 26918);
+
+UPDATE bike_stations
+SET geom_UTM = ST_Transform(geom, 26918);
+
+SELECT *, ST_Transform(geom_UTM, 4326) as geombm FROM bike_stations; 
+
+CREATE INDEX geom_UTM_i ON bike_stations USING GIST(geom_UTM);
+
+SELECT sid, ST_IsValid(geom) as IsValid, ST_IsSimple(geom) as IsSimple
+FROM bike_stations
+WHERE ST_IsValid(geom) = 'false' or ST_IsSimple(geom) = 'false';
+
+SELECT sid, ST_IsValid(geom_UTM) as IsValid, ST_IsSimple(geom_UTM) as IsSimple
+FROM bike_stations
+WHERE ST_IsValid(geom_UTM) = 'false' or ST_IsSimple(geom_UTM) = 'false';
+
+CREATE INDEX index_b
+ON bike_stations (sid);
+
+
+
+
+--- BOROUGHS SHAPEFILE 
+
+SELECT * FROM  boroughs
+
+SELECT *
+FROM spatial_ref_sys
+WHERE srid IN(102718);
+
+SELECT UpdateGeometrySRID('boroughs','geom',102718);
+
+SELECT *, ST_Transform(geom, 4326) as geombm FROM boroughs; 
+
+ALTER TABLE boroughs
+ADD COLUMN geometry geometry(MultiPolygon, 4326),
+ADD COLUMN geom_UTM geometry(MultiPolygon, 26918);
+
+UPDATE boroughs SET geometry = ST_Transform(geom, 4326);
+UPDATE boroughs SET geom_UTM = ST_Transform(geom, 26918);
+
+ALTER TABLE boroughs DROP COLUMN geom;
+
+SELECT gid, ST_IsValid(geometry) as IsValid, ST_IsSimple(geometry) as IsSimple
+FROM boroughs WHERE ST_IsValid(geometry) = 'false' or ST_IsSimple(geometry) = 'false';
+
+SELECT gid, ST_IsValid(geom_UTM) as IsValid, ST_IsSimple(geom_UTM) as IsSimple
+FROM boroughs WHERE ST_IsValid(geom_UTM) = 'false' or ST_IsSimple(geom_UTM) = 'false';
+
+SELECT *, ST_Transform(geom_UTM, 4326) as geombm
+FROM boroughs; 
+
+
+-- DROP NEW JERSEY STATIONS
+
+DELETE FROM bike_stations
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM boroughs
+    WHERE ST_Within(bike_stations.geom_UTM, boroughs.geom_UTM)
+);
+
+-- ADD BOROUGHS TO STATIONS
+
+ALTER TABLE bike_stations
+ADD COLUMN borough VARCHAR(32);
+
+UPDATE bike_stations
+SET borough = boroughs.boroname
+FROM boroughs
+WHERE ST_Within(bike_stations.geom_UTM, boroughs.geom_UTM);
+
+SELECT * FROM bike_stations;
+
+-- CALCULATE HOW MANY STATIONS IN EACH BOROUGH 
+CREATE VIEW stations_by_borough AS (
+	SELECT borough, count(*) as total_stations
+	FROM bike_stations
+	GROUP BY borough
+	ORDER BY count(*) DESC);
+
+SELECT borough, total_stations FROM stations_by_borough
+ORDER BY total_stations DESC;
+
+-- BIKE LANES SHAPEFILE
+SELECT * FROM bike_lanes
+
+SELECT UpdateGeometrySRID('bike_lanes','geom',2263);
+SELECT *, ST_Transform(geom, 4326) as geombm FROM bike_lanes; 
+
+ALTER TABLE bike_lanes ADD COLUMN geom_UTM geometry(MultiLineString, 26918);
+UPDATE bike_lanes SET geom_UTM = ST_Transform(geom, 26918);
+
+SELECT gid, ST_IsValid(geom) as IsValid, ST_IsSimple(geom) as IsSimple
+FROM bike_lanes
+WHERE ST_IsValid(geom) = 'false' or ST_IsSimple(geom) = 'false';
+
+SELECT gid, ST_IsValid(geom_UTM) as IsValid, ST_IsSimple(geom_UTM) as IsSimple
+FROM bike_lanes
+WHERE ST_IsValid(geom_UTM) = 'false' or ST_IsSimple(geom_UTM) = 'false';
+
+SELECT *, ST_Transform(geom_UTM, 4326) as geombm
+FROM bike_lanes; 
+
+CREATE INDEX geom_UTM_b ON bike_lanes
+USING GIST(geom_UTM);
+
+ALTER TABLE bike_lanes
+DROP COLUMN segmentid,
+DROP COLUMN shape_leng,
+DROP COLUMN "comments";
+
+---- FOR EVERY STATION CALCULATE DISTANCE TO CLOSEST BIKE LANE
+
+ALTER TABLE bike_stations
+ADD COLUMN dist_bike_line float4;
+
+UPDATE bike_stations
+SET dist_bike_line = (
+    SELECT (MIN(ST_Distance(bike_stations.geom_UTM, bike_lanes.geom_UTM)))
+    FROM bike_lanes
+);
+
+
+SELECT * FROM bike_stations
+ORDER BY dist_bike_line DESC
+
+-- CALCULATE AVG DIST TO BIKE LANE IN EACH BOROUGH 
+	
+CREATE OR REPLACE VIEW stations_by_borough AS
+SELECT
+    borough,
+    COUNT(*) AS total_stations,
+    ROUND(AVG(dist_bike_line)) AS avg_dist_bike_lane
+FROM bike_stations
+GROUP BY borough;
+
+SELECT * FROM stations_by_borough
+ORDER BY avg_dist_bike_lane DESC;
+
+SELECT *
+FROM bike_stations
+
+

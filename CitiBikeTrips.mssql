@@ -1,0 +1,141 @@
+CREATE TEMPORARY VIEW trips_temp AS (
+	SELECT d.*, 
+			s.sid as start_station_sid, 
+			b.sid as end_station_sid, 
+			s.geom start_geom, 
+			s.geom_utm as start_geom_utm, 
+			b.geom as end_geom, b.geom_utm as end_geom_utm
+	FROM data d
+	JOIN bike_stations s
+		ON d.start_station_name = s.station_name 
+		AND d.start_station_id = s.station_id
+	JOIN bike_stations b
+		ON d.end_station_name = b.station_name 
+		AND d.end_station_id = b.station_id);
+		
+
+SELECT * FROM trips_temp
+
+CREATE TABLE IF NOT EXISTS trips (
+	RID SERIAL PRIMARY KEY,
+	ride_id VARCHAR(16),
+	bike_type VARCHAR(13),
+	member_type VARCHAR(6),
+	starting_time timestamp, 
+	ending_time timestamp,
+	start_station_sid INT,
+	end_station_sid INT,
+	start_geom GEOMETRY, 
+	start_geom_utm GEOMETRY, 
+	end_geom GEOMETRY,
+	end_geom_utm GEOMETRY);
+
+
+INSERT INTO trips	(ride_id, 
+					bike_type,
+					member_type, 
+					starting_time, 
+					ending_time, 
+					start_station_sid,
+					end_station_sid,
+					start_geom, 
+					start_geom_utm, 
+					end_geom,
+					end_geom_utm
+				)						
+SELECT 	ride_id,
+		rideable_type,
+		member_casual, 
+		started_at::timestamp,
+		ended_at::timestamp,
+		start_station_sid,
+		end_station_sid,
+		start_geom, 
+		start_geom_utm, 
+		end_geom,
+		end_geom_utm
+FROM trips_temp;
+
+SELECT * FROM trips
+
+ALTER TABLE trips 
+ADD CONSTRAINT constraint_ssid 
+FOREIGN KEY (start_station_sid) 
+REFERENCES bike_stations (sid);
+
+ALTER TABLE trips 
+ADD CONSTRAINT constraint_esid 
+FOREIGN KEY (end_station_sid) 
+REFERENCES bike_stations (sid);
+
+CREATE INDEX index_t
+ON trips (rid);
+
+CREATE INDEX geom_s ON trips
+USING GIST(start_geom);
+
+CREATE INDEX geom_su ON trips
+USING GIST(start_geom_utm);
+
+CREATE INDEX geom_e ON trips
+USING GIST(end_geom);
+
+CREATE INDEX geom_eu ON trips
+USING GIST(end_geom_utm);
+
+ALTER TABLE trips 
+	ADD COLUMN g_route_points geometry(Multipoint, 4326),
+	ADD COLUMN g_route_points_utm geometry(Multipoint, 26918);
+
+CLUSTER trips USING index_t;
+
+UPDATE trips SET g_route_points = ST_Collect(start_geom, end_geom);
+UPDATE trips SET g_route_points_utm = ST_Collect(start_geom_utm, end_geom_utm);
+
+CREATE INDEX geom_r ON trips USING GIST(g_route_points);
+CREATE INDEX geom_ru ON trips USING GIST(g_route_points_utm);
+
+ALTER TABLE trips ALTER COLUMN g_route_points SET not null;
+CLUSTER geom_r ON trips;
+
+ALTER TABLE trips ADD COLUMN line_route geometry(LineString, 4326);
+UPDATE trips SET line_route = ST_MakeLine(start_geom, end_geom);
+
+
+UPDATE trips SET line_route = ST_MakeLine(start_geom, end_geom);
+
+CREATE TEMPORARY TABLE trips_viz as (
+SELECT * FROM trips
+LIMIT 10000)
+
+CREATE TEMPORARY TABLE trips_viz AS (
+    SELECT *
+    FROM trips
+    WHERE ending_time >= '2022-07-01' AND ending_time < '2022-07-02' -- Adjust dates for your definition of summer
+	Limit 10000
+)
+	
+DROP TABLE trips_viz
+
+ALTER TABLE trips_viz
+ADD COLUMN start_x_coordinate double precision,
+ADD COLUMN start_y_coordinate double precision,
+ADD COLUMN end_x_coordinate double precision,
+ADD COLUMN end_y_coordinate double precision;
+
+UPDATE trips_viz
+SET
+    start_x_coordinate = ST_X(start_geom),
+    start_y_coordinate = ST_Y(start_geom),
+	end_x_coordinate = ST_X(end_geom),
+    end_y_coordinate = ST_Y(end_geom);
+	
+SELECT * FROM trips_viz
+
+
+CREATE VIEW trips_station_counts AS (
+SELECT start_station_sid, start_geom, count(*) as trips_per_station
+FROM TRIPS
+Group BY start_station_sid, start_geom
+ORDER BY count(*) DESC);
+SELECT * FROM
