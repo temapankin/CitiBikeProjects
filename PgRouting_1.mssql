@@ -1,0 +1,70 @@
+CREATE SCHEMA ospr;
+
+CREATE OR REPLACE VIEW routing
+AS 
+SELECT id As gid, osm_id, osm_name, osm_meta, osm_source_id, osm_target_id, 
+       clazz, flags, source, target, km, kmh, cost, cost as length, reverse_cost, x1, 
+       y1, x2, y2, geom_way As the_geom
+  FROM public.osm_2po_4pgr;
+  
+---
+
+
+SELECT pgr_createVerticesTable('osm_2po_4pgr','geom_way','source','target','true');
+
+SELECT * FROM public.osm_2po_4pgr_vertices_pgr 
+
+
+CREATE OR REPLACE FUNCTION
+upgr_vnodes(param_network_sql text,
+param_pts geometry[], param_tolerance float DEFAULT 0.01)
+RETURNS TABLE (id bigint, pid bigint, edge_id bigint, fraction float, side text, closest_node bigint) AS
+$$
+-- network sql must contain edge_id, geom, source, target
+DECLARE var_sql text;
+BEGIN
+  var_sql := ' WITH p AS (
+  SELECT id::bigint AS id, f.geom
+    FROM unnest($1) WITH ORDINALITY AS f(geom, id)
+    )
+ SELECT p.id, CASE WHEN e.fraction < 0.01 THEN e.source
+WHEN e.fraction > 0.99 THEN e.target ELSE -p.id END::bigint AS pid, e.edge_id::bigint, e.fraction,
+            upgr_sideOfStreet(e.geom, p.geom) As side,
+         CASE WHEN e.fraction <= 0.5 THEN e.source
+         ELSE e.target END As closest_node
+FROM p,
+    LATERAL (
+SELECT w.id As edge_id, w.source, w.target, cost, ST_LineLocatePoint(w.geom, p.geom) AS fraction, w.geom
+     FROM (' || param_network_sql || ') As w
+        WHERE ST_DWithin(p.geom, w.geom, $2)
+ORDER BY ST_Distance(p.geom, w.geom) LIMIT 1 ) AS e '; RETURN QUERY EXECUTE var_sql USING param_pts, param_tolerance;
+END;
+$$ language 'plpgsql';
+
+-----
+WITH vn AS(
+	SELECT *
+	FROM upgr_vnodes($$SELECT gid As id, source, target, the_geom As geom, length_m As cost
+	FROM ospr.ways$$, ARRAY[ ST_SetSRID( ST_Point(-77.009003, 38.889931), 4326),
+							ST_SetSRID( ST_Point(-77.036545, 38.897096), 4326) ] )
+	)							
+	SELECT r.edge, r.seq, r.node, w.name As street, r.cost::numeric(10,2), r.agg_cost::numeric(10,2)
+	FROM pgr_withPoints($$SELECT gid AS id, source,
+	target,
+	length_m AS cost FROM ospr.ways$$,
+-- these need to be expressed as positive and only include nodes not on network
+(
+	SELECT string_agg('SELECT ' || vn.pid*-1 || '::bigint AS pid, '
+			|| vn.edge_id || '::bigint AS edge_id, '
+			|| vn.fraction || '::float AS fraction ',
+			'UNION ALL') As points_sql FROM vn
+	WHERE vn.pid < 0 ) ,
+	-- these need to be negative
+	(SELECT pid FROM vn WHERE id = 1), (SELECT pid FROM vn WHERE id = 2),
+	false, details:=false) AS r
+	
+	LEFT JOIN ospr.ways AS w ON r.edge = w.gid;
+	
+	
+	
+	-----

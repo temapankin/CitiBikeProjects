@@ -1,0 +1,50 @@
+WITH start_ AS (
+    SELECT TOPO.TARGET
+    FROM osm_new AS TOPO
+    ORDER BY ST_Distance(TOPO.GEOM_WAY::geography,
+						 ST_SETSRID(ST_MakePoint(40.70538077, -73.94976519), 4326)::geography)
+	LIMIT 1),
+
+destination AS (
+    SELECT
+    TOPO.TARGET,
+    ST_Distance(
+        ST_MakeLine(
+            ST_MakePoint(TOPO.y1, TOPO.x1),
+            ST_MakePoint(TOPO.y2, TOPO.x2)
+        ),
+        ST_SETSRID(ST_GEOMFROMTEXT('POINT(40.8013434 -73.9711457439)'), 4326)::geography
+    ) AS distance
+FROM
+    osm_new AS TOPO
+ORDER BY
+    ST_SETSRID(ST_GEOMFROMTEXT('POINT(40.8013434 -73.9711457439)'), 4326) <-> TOPO.GEOM_WAY
+
+	LIMIT 1)
+
+SELECT ST_UNION(GEOM_WAY) AS ROUTE
+FROM PGR_DIJKSTRA
+	('SELECT ID, SOURCE, TARGET, (ST_LENGTH(ST_TRANSFORM(GEOM_WAY, 3857))) AS COST
+		FROM osm_new', 
+	 		array(SELECT TARGET FROM start_),
+	 		array(SELECT TARGET FROM destination),
+	 		directed := false) AS di
+			JOIN osm_new AS PT ON DI.EDGE = PT.ID;
+				
+SELECT * FROM public.osm_2po_4pgr, ST_SetSRID(osm_2po_4pgr.GEOM_WAY,4326)
+where TARGET = '43539'
+
+SELECT Find_SRID('public', 'osm_new', 'geom_way');
+SELECT UpdateGeometrySRID('osm_new','geom_way',4326);
+
+DROP VIEW routing
+
+UPDATE osm_new SET GEOM_WAY = ST_SetSRID(osm_new.GEOM_WAY, 4326);
+
+CREATE TABLE osm_new as(
+SELECT o.* 
+FROM OSM_2PO_4PGR o, public.boroughs b 
+WHERE ST_WITHIN(o.GEOM_WAY, b.geometry))
+
+CREATE INDEX geom_ee ON OSM_2PO_4PGR USING GIST(GEOM_WAY);
+
