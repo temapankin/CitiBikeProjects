@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+    <title> NYC Biking </title>
+
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""/>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""></script>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
+    <script src="https://unpkg.com/leaflet@latest/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-providers@latest/leaflet-providers.js"></script>
+
+    <script src='https://api.mapbox.com/mapbox.js/plugins/leaflet-fullscreen/v1.0.1/Leaflet.fullscreen.min.js'></script>
+    <link href='https://api.mapbox.com/mapbox.js/plugins/leaflet-fullscreen/v1.0.1/leaflet.fullscreen.css' rel='stylesheet'/>
+
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+
+    <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet-geosearch@3.0.0/dist/geosearch.css"/>
+    <script src="https://unpkg.com/leaflet-geosearch@latest/dist/bundle.min.js"></script>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-search@2.3.7/dist/leaflet-search.src.css" />
+    <script src="https://unpkg.com/leaflet-search@2.3.7/dist/leaflet-search.src.js"></script>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol/dist/L.Control.Locate.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol/dist/L.Control.Locate.min.js" charset="utf-8"></script>
+
+    <style>
+
+        html,
+        body {
+          height: 100%;
+          margin: 0;
+        }
+  
+        #map {
+          width: 70%;
+          height: 100%;
+        }
+        
+      </style>
+
+    <style>
+
+      .info {
+      padding: 6px 8px;
+      font: 14px/16px Helvetica, sans-serif;
+      background: white;
+      background: rgba(255,255,255,0.9);
+      box-shadow: 0 0 15px rgba(0,0,0,0.2);
+      border-radius: 5px;
+        }
+
+      .info h4 {
+      margin: 0px 0 10px;
+      color: #484747;
+      }
+
+      .legend {
+          line-height: 18px;
+          color: #555;
+      }
+      .legend i {
+          width: 18px;
+          height: 18px;
+          float: left;
+          margin-right: 8px;
+          opacity: 0.7;
+          }
+
+      .legend rectangle {
+      height: 5px;
+      width: 20px;
+        }
+      </style>
+
+<style>
+/* Left control buttons */
+      .leaflet-control-locate .fa-map-marker{
+          position:relative;
+              left:-1px;
+      }
+
+      .leaflet-control-search .search-button:hover, .leaflet-control-search .search-button {
+          height:27px;
+          width:27px;
+          color:#333;
+          text-decoration:none;
+      }
+
+      .leaflet-control-search .search-button:hover:before, .leaflet-control-search .search-button:before{
+          font-family:"Helvetica";
+          font-size:25px;
+          margin-left:5px;
+      }
+
+      .leaflet-control-search .search-cancel {
+          background-image: none;
+          border-radius: 0;
+          width: auto;
+          height: auto;
+          right: 34px;
+          margin: 1px;
+      }
+
+      .leaflet-control-search .search-tooltip{
+        border:none;
+        background-color:#FFF;
+      }
+
+      .leaflet-control-search  .search-tip{
+          border-radius:0;
+          margin:0;
+      }
+      .leaflet-control-search  .search-tip.search-tip-select{
+          background-color: #428BCA;
+          color:#FFF;
+      }
+
+    </style>
+
+    <style> 
+
+      .text-box { 
+        width: 30%; 
+        height: 100%; 
+        float: right;
+        font: 14px/16px Helvetica, sans-serif;
+        background-color: #1F2020;
+        color: white;
+        box-sizing: border-box;
+        padding: 20px;
+
+      } 
+
+      .text-box h1 {
+        line-height: 1; /* Adjust the line height to increase or decrease spacing */
+        margin-bottom: 20px; /* Optional: Add some bottom margin for spacing */
+      }
+
+      .text-box h2 {
+        line-height: 1; /* Adjust the line height to increase or decrease spacing */
+        margin-top: 30px;
+        margin-bottom: 10px; /* Optional: Add some bottom margin for spacing */
+        font-size: 18px;
+      }
+
+    </style>
+
+<style>
+  #link:link {
+    color: rgb(193, 193, 193);
+    background-color: transparent;
+    text-decoration: none;
+  }
+  
+  #link:visited {
+    color: #FDCC9D;
+    background-color: transparent;
+    text-decoration: none;
+  }
+  
+  #link:hover {
+    color: #D17555 ;
+    background-color: transparent;
+    text-decoration: underline;
+  }
+  </style>
+
+  <style>
+    .link:link {
+      color: rgb(156, 156, 156);
+      background-color: transparent;
+      text-decoration: none;
+    }
+    
+    .link:visited {
+      color: rgb(73, 72, 72);
+      background-color: transparent;
+      text-decoration: none;
+    }
+    
+    .link:hover {
+      color: #D17555 ;
+      background-color: transparent;
+      text-decoration: underline;
+    }
+    
+    .link:active {
+      color: #FDCC9D;
+      background-color: transparent;
+      text-decoration: underline;
+    }
+    </style>
+  
+
+    <style>
+
+      .info2 {
+      padding: 6px 8px;
+      font: 14px/16px Helvetica, sans-serif;
+      background: white;
+      background: rgba(255,255,255,0.9);
+      box-shadow: 0 0 15px rgba(0,0,0,0.2);
+      border-radius: 5px;
+        }
+
+        .info2 h4 {
+      margin: 0px 0 10px;
+      color: #484747;
+      }
+
+      .legend2 {
+          line-height: 18px;
+          color: #555;
+      }
+      .legend2 i {
+          width: 18px;
+          height: 4px;
+          float: left;
+          margin-top: 6px;
+          margin-right: 8px;
+          opacity: 0.7;
+          }
+
+    </style>
+
+    </head>
+
+<body>
+
+  <div class="text-box"> 
+
+    <h1> New York City <br> Bike Infastructure</h1>
+
+    <p>This map illustrates the state of New York City's bike infrastructure, such as bike lanes and bike parking, as well as the number of trips taken on Citi Bike, NYC's bike-share system.</p> 
+
+    <p>The map shows the robust bicycle infrastructure in Manhattan, which contributes to a significant number of bike trips in the area. 
+      However, it also highlights the disparity in bike infrastructure between other boroughs, where such facilities are lacking, 
+      hindering the potential of cycling as a viable transportation option. This idea is also reinforced by the implementation of Bike Priority Areas, 
+      which are developed as part of the Vision Zero program and serve as focal points for the development of bike infrastructure. </p>
+
+      <h2> Data </h2>
+    <p>The Citi Bike trip counts by station layer represents trips made during the summer of 2023.
+      <a id="link" href="https://citibikenyc.com/system-data">
+         The Citi Bike System Data</a> dataset was processed using the PostgreSQL database toolkit and PostGIS extension to
+       clean it up, create a trip count, and aggregate it by station. 
+       Other layers were collected from open data portals and processed using QGIS and Python. Each feature has its own pop-up window with relevant information.</p>
+
+    <p> <b>Sources</b>: 
+      <a class="link" href="https://citibikenyc.com/system-data"> Citi Bike System Data,</a>
+      <a class="link" href="https://data.cityofnewyork.us/Transportation/New-York-City-Bike-Routes/7vsa-caz7"> Bike Routes,</a> 
+      <a class="link" href="https://data.cityofnewyork.us/Transportation/Bicycle-Parking-Shelters/thbt-gfu9"> Bicycle Parking Shelters,</a>
+      <a class="link" href="https://data.cityofnewyork.us/Transportation/Bicycle-Parking/yh4a-g3fj"> Bicycle Parking, </a>
+      <a class="link" href="https://data.cityofnewyork.us/Transportation/VZV_Bike-Priority-Areas/ii5c-g6sq"> Bike Priority Areas. </a>
+    </p>
+      
+  </div> 
+    
+    <div id="map"></div>
+    <script>
+
+    var map = L.map("map", {
+        fullscreenControl: true,
+        minZoom: 10
+        }).setView([40.75, -73.96], 12);    
+    
+    var accessToken = 'pk.eyJ1IjoiZWxhZ2luIiwiYSI6ImNscTJndG9nYzAxaWgyaW9iZnd6ejFoc3QifQ.kEmANo4YElO2XI7IQf9mBA';
+
+    let baseLayer0 = L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
+    attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a> © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> <strong><a href="https://www.mapbox.com/map-feedback/" target="_blank">Improve this map</a></strong>',
+    tileSize: 512,
+    maxZoom: 18,
+    zoomOffset: -1,
+    id: 'mapbox/dark-v11',
+    accessToken: accessToken
+    }).addTo(map);
+
+
+    let baseLayer1 = L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
+    attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a> © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> <strong><a href="https://www.mapbox.com/map-feedback/" target="_blank">Improve this map</a></strong>',
+    tileSize: 512,
+    maxZoom: 18,
+    zoomOffset: -1,
+    id: 'mapbox/light-v11',
+    accessToken: accessToken
+    });
+
+    let baseLayer2 = L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
+    attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a> © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> <strong><a href="https://www.mapbox.com/map-feedback/" target="_blank">Improve this map</a></strong>',
+    tileSize: 512,
+    maxZoom: 18,
+    zoomOffset: -1,
+    id: 'mapbox/satellite-v9',
+    accessToken: accessToken
+    });
+
+
+    var baseMaps = {
+    "Mapbox Dark": baseLayer0,
+    "Mapbox Light": baseLayer1,
+    "Satellite": baseLayer2,
+    };
+
+
+  /// var layerControl = L.control.layers(baseMaps).addTo(map)
+
+  function onEachFeature(feature, layer) {
+            var popupContent =
+                "<p> <b> N of trips per station: </b> " +
+                feature.properties["trips_per_station"]
+                "</p>";
+
+            if (feature.properties && feature.properties.popupContent) {
+                popupContent += feature.properties.popupContent;
+            }
+
+            layer.bindPopup(popupContent, {pane: "labels"});
+
+            layer.on({
+                mouseover: function (e) {
+                    e.target.setStyle({ stroke: true, weight: 2.5, color: "#FF4949"});
+                    e.target.openPopup();
+                },
+                mouseout: (e) => {
+                    citibikePoints.resetStyle(e.target);
+                    e.target.closePopup();
+                },
+            });};
+  
+  map.createPane('labels');
+  map.getPane('labels').style.zIndex = 900;
+
+  map.createPane('points');
+  map.getPane('points').style.zIndex = 850;
+
+  var CitiBikePointsURL = "https://raw.githubusercontent.com/temapankin/CitiBikeProjects/main/CitibikePoints.geojson";
+
+  var citibikePoints = L.geoJSON(null, 
+        {
+          pointToLayer: (geoJsonPoint, latlng) => {
+          return L.circleMarker(latlng,/// {pane: 'labels'}
+
+          )}, 
+          onEachFeature
+        }).addTo(map);
+
+    
+   // $.getJSON(CitiBikePointsURL, 
+   // function (data) {
+   // citibikePoints.addData(data);
+   // });
+
+   var info = L.control();
+
+    info.onAdd = function (map) {
+      this._div = L.DomUtil.create('div', 'info'); // create a div with a class "info"
+      this.update();
+      return this._div;
+        };
+    
+
+   var colors = [];
+   let grades = [];
+
+   fetch(CitiBikePointsURL)
+        .then((response) => {
+          return response.json();
+        })
+        .then((data) => {
+
+          var maxVal = -Infinity,
+          minVal = Infinity;
+
+          data.features.forEach((f, i) => {
+             
+              maxVal = Math.max(maxVal, f.properties.trips_per_station);
+              minVal = Math.min(minVal, f.properties.trips_per_station);
+          });
+          var valRange = maxVal - minVal;
+
+          citibikePoints.options.style = (f) => {
+            return {
+              fillColor: d3.interpolateOranges(
+                (f.properties["trips_per_station"] - minVal) / valRange
+              ), 
+            stroke: false,
+            fillOpacity: 1,
+            radius: 3.5
+            };
+          };
+            citibikePoints.addData(data)
+
+            for (let i = 0; i < 5; ++i) {
+              
+              let val = ((minVal + valRange/5.0*i));
+              grades.push(Math.round(val))
+
+              let col = d3.interpolateOranges( (val - minVal)/valRange);
+              colors.push(d3.color(col).formatHex())
+              };
+             
+
+        }).then((data) => {
+      
+      var legend = L.control({position: 'bottomright'});
+
+      legend.onAdd = function (map) {
+
+      var div1 = L.DomUtil.create('div', 'info legend');
+
+      div1.innerHTML += "<h4>Number of trips</h4>";
+
+      for (var i = 0; i < grades.length; i++) {
+          div1.innerHTML +=
+
+            '<i style="background:' + colors[i] + '"></i> ' +
+            grades[i] +" " + (grades[i + 1] ? '&ndash;' +" " + grades[i + 1] + '<br>' : '+');
+           }
+
+      return div1
+        };
+
+      legend.addTo(map)
+      
+      
+      map.on('overlayadd', function (eventLayer) {
+        if (eventLayer.name === 'Citi Bike trips by station') {
+          legend.addTo(this);}
+      });
+
+      map.on('overlayremove', function (eventLayer) {
+      if (eventLayer.name === 'Citi Bike trips by station') {
+        this.removeControl(legend);}
+    });
+;
+      });
+
+
+      var RoutesURL = "https://raw.githubusercontent.com/temapankin/CitiBikeProjects/main/routes.json";
+      
+      function getColor(d){
+        return d == "Protected Path" ? "#A271E3" : "#71E38E"
+      };
+
+      function MyStyle(feature) {
+        return {
+              color: getColor(feature.properties["final_value"]),
+              smoothFactor: 100.0,
+              weight: 1.5,
+              opacity: 0.75,
+              lineCap: 'round',
+              lineJoin: 'round'
+          };
+      };
+  
+      var Routes = L.geoJSON(null, 
+      {onEachFeature: function(feature,layer){
+            
+            layer.on({
+                mouseover: function (e) {
+                    e.target.setStyle({weight: 3.5, stroke: true, color: "#FF4949"});
+                    e.target.openPopup();
+                },
+                mouseout: (e) => {
+                    Routes.resetStyle(e.target);
+                    e.target.closePopup();
+                }})
+        },style: MyStyle},
+      ).bindTooltip((l) => { //binds a popup when clicking on each polygon to access underlying data
+
+        var TypeProperty;
+
+        var popupContent =
+                "<p> <b> Lane count: </b> " +
+                l.feature.properties["lanecount"] + '<br>' 
+                + "<b> Street Status: </b>" +
+                l.feature.properties["onoffst"] + '<br>' 
+                + "<b> Class: </b>" +
+                l.feature.properties["facilitycl"] + '<br>' 
+                + "<b> Type: </b>" + 
+                l.feature.properties["final_value"]
+                "</p>";
+            
+            return popupContent;
+            },{pane: "labels"})
+            
+        
+      $.getJSON(RoutesURL, 
+      function (data) {
+        Routes.addData(data);
+      });
+
+      var legend2 = L.control({position: 'bottomright'});
+
+      legend2.onAdd = function (map) {
+
+      var div2 = L.DomUtil.create('div', 'info2 legend2');
+
+      div2.innerHTML += "<h4>Type of Bike Lane</h4>";
+
+      div2.innerHTML += '<i class="rectangle" style="background: #A271E3'+ '"></i> ' + "Protected Path" + '<br>';
+
+      div2.innerHTML += '<i class="rectangle" style="background: #71E38E'+ '"></i> ' + "Other"+ '<br>' ;
+
+      return div2};
+
+    ShelterParking = "https://raw.githubusercontent.com/temapankin/CitiBikeProjects/main/BicycleParkingShelters.json"
+
+    
+    function onEachFeatureParking(feature,layer){
+      var popupContent =
+                "<p> <b> Location: </b> " +
+                feature.properties["location"] + '<br>' +
+                "<b> NTA: </b>" +
+                feature.properties["ntaname"]
+                "</p>";
+
+            if (feature.properties && feature.properties.popupContent) {
+                popupContent += feature.properties.popupContent;
+            }
+
+            layer.bindPopup(popupContent, {pane: "labels"});
+
+            layer.on({
+                mouseover: function (e) {
+                    e.target.setStyle({ stroke: true, weight: 2.5, fillColor: "#FF4949", color: "#FF4949"});
+                    e.target.openPopup();
+                },
+                mouseout: (e) => {
+                  ShelterParkingPoints.resetStyle(e.target);
+                    e.target.closePopup();
+                }});
+              };
+
+
+    var ShelterParkingPoints = L.geoJSON(null, {
+      pointToLayer: function (geoJsonPoint, latlng) {
+        return L.circleMarker(latlng, {
+            radius: 7,
+            fillOpacity: 0.5,
+            color: "#157145",
+            pane: "points"
+        });
+      },
+      onEachFeature: onEachFeatureParking
+      });
+
+
+    $.getJSON(ShelterParking, 
+    function (data) {
+      ShelterParkingPoints.addData(data);
+      });
+
+
+    function onEachFeatureParkingPoints(feature,layer){
+
+    var sideOfStreet = feature.properties["side_of_st"];
+    var sideOfStreetDescription;
+    
+    switch (sideOfStreet) {
+      case 'N':
+      sideOfStreetDescription = "North"
+      break;
+      case 'W':
+      sideOfStreetDescription = "West"
+      case 'S':
+      sideOfStreetDescription = "South"
+      break;
+      case 'E':
+      sideOfStreetDescription = "East"
+      break;
+
+    default:
+    sideOfStreetDescription = 'No Data';
+    }
+
+    var popupContent =
+              "<p> <b> Street: </b> " +
+              feature.properties["ifoaddress"] + '<br>' +
+              "<b> Side of the street: </b>" +
+              sideOfStreetDescription + '<br  s>' +
+              "<b> Rack type: </b>" +
+              feature.properties["rack_type"] +
+              "</p>";
+
+          if (feature.properties && feature.properties.popupContent) {
+              popupContent += feature.properties.popupContent;
+          }
+
+          layer.bindPopup(popupContent, {pane: "labels"});
+
+          layer.on({
+              mouseover: function (e) {
+                  e.target.setStyle({ stroke: true, weight: 2.5, fillColor: "#FF4949", color: "#FF4949"});
+                  e.target.openPopup();
+              },
+              mouseout: (e) => {
+                ShelterParkingPoints.resetStyle(e.target);
+                  e.target.closePopup();
+              }});
+            };
+
+    Parking = "https://raw.githubusercontent.com/temapankin/CitiBikeProjects/main/BicycleParking.json"
+
+    var ParkingPoints = L.geoJSON(null, {
+    pointToLayer: function (geoJsonPoint, latlng) {
+      return L.circleMarker(latlng, {
+          radius: 1,
+          fillOpacity: 0.2,
+          weight: 0.5,
+          color: "#7597B6"
+      });
+    },
+    onEachFeature: onEachFeatureParkingPoints
+    });
+
+    $.getJSON(Parking, 
+    function (data) {
+      ParkingPoints.addData(data);
+      });
+
+    Zones = "https://raw.githubusercontent.com/temapankin/CitiBikeProjects/main/VZV_BikePriorityAreas.json"
+
+
+    function MyStylePoly(feature) {
+        return {
+              color: "#A31621",
+              weight: 1.5,
+          };
+      };
+
+    var VZ_Zones = L.geoJSON(null, 
+      {onEachFeature: function(feature,layer){
+            layer.bindPopup('<p><b>Priority Bicycle Districts </b>are neighborhoods with comparatively high numbers of <i>cyclist killed or seriously injured</i> and few dedicated bicycle facilities, so have been prioritized for bicycle network expansion.</p>');
+
+            layer.on({
+                mouseover: function (e) {
+                    e.target.setStyle({weight: 5, stroke: true, color: "#FFC145"});
+                },
+                mouseout: (e) => {
+                  VZ_Zones.resetStyle(e.target);
+                }})
+        },style: MyStylePoly},{pane: "labels"}
+      )
+
+    $.getJSON(Zones, 
+    function (data) {
+      VZ_Zones.addData(data);
+      });
+
+    var overlayMaps = {
+     "Citi Bike trips by station": citibikePoints,
+     "Bike lanes": Routes,
+     "Parking shelters": ShelterParkingPoints,
+     "Parking": ParkingPoints,
+     "Priority Areas": VZ_Zones
+    };
+  
+    var layerControl = L.control.layers(baseMaps, overlayMaps).addTo(map)
+
+    map.on('overlayadd', function (eventLayer) {
+        if (eventLayer.name === 'Bike lanes') {
+          legend2.addTo(this);}
+      });
+
+    map.on('overlayremove', function (eventLayer) {
+      if (eventLayer.name === 'Bike lanes') {
+        this.removeControl(legend2);}
+    });
+
+
+    var lc = L.control
+  .locate({
+    position: "topleft",
+    returnToPrevBounds: true ,
+    flyTo: true,
+    strings: {
+      title: "Show me my location!"
+    }
+  })
+  .addTo(map);
+
+  /* Search control */
+var searchbar =map.addControl(new L.Control.Search({
+    url: 'https://nominatim.openstreetmap.org/search?format=json&q={s}',
+    jsonpParam: 'json_callback',
+    propertyName: 'display_name',
+    propertyLoc: ['lat','lon'],
+    markerLocation: true,
+    autoType: false,
+    autoCollapse: true,
+    minLength: 3,
+    zoom:16,
+    
+})).addTo(map);;
+
+
+
+        </script>
+    </body>
+</html>
