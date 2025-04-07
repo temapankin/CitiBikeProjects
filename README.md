@@ -1,6 +1,6 @@
 # Researching biking in NYC
 
-This repository contains Python, SQL, and Javascript code and some of the data used for the CitiBike Data and NYC's Bike Infrastructure projects I developed
+This repository contains Python, SQL, and Javascript code and some of the data used for the [CitiBike Data](https://citibikenyc.com/system-data) and NYC's Bike Infrastructure projects I developed
 for three GIS classes I took at Hunter College:
 - GTECH 361 GIS Analysis
 - GTECH 38519/78519 Geospatial Databases
