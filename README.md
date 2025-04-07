@@ -8,7 +8,7 @@ for three GIS classes I took at Hunter College:
 
 Specifically, I developed the following project: 
 
-1. **Spatial Decision Support System** that provides algorithms to solve the location-allocation problem for new CitiBike stations in the expansion areas.
-2. **CitiBike Trips Database**, which transforms original data into PostgreSQL DB with convenient formatting and additional geospatial metrics.
+1. **Spatial Decision Support System (SDSS)** that provides algorithms to solve the location-allocation problem for new CitiBike stations in the expansion areas.
+2. **CitiBike Trips Database (DB)**, which transforms original data into PostgreSQL DB with convenient formatting and additional geospatial metrics.
 3. **Web-Map New York City Bike Infrastructure**, created using HTML, CSS and JavaScript, showing different types of bike facilities in the city. [See result](https://temapankin.github.io/CitiBikeProjects/)
 
