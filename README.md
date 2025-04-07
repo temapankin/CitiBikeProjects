@@ -15,4 +15,4 @@ This component transforms raw CitiBike trip data into a structured PostgreSQL da
 **3. NYC Bike Infrastructure Web Map**
 A lightweight, interactive web map built using HTML, CSS, and JavaScript. It displays different types of bike facilities across New York City, such as protected lanes and shared routes. This map allows users to explore the city’s cycling infrastructure visually.
 
-➡️ [View the Web Map] (https://temapankin.github.io/CitiBikeProjects/)
+➡️ [View the Web Map](https://temapankin.github.io/CitiBikeProjects/)
